@@ -5,26 +5,29 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <!-- Leaflet -->
+  <!-- Leaflet CSS & JS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
   <!-- Plugin Geolocation -->
-  <script src="https://unpkg.com/leaflet.locatecontrol/dist/L.Control.Locate.min.js"></script>
   <link rel="stylesheet" href="https://unpkg.com/leaflet.locatecontrol/dist/L.Control.Locate.min.css" />
+  <script src="https://unpkg.com/leaflet.locatecontrol/dist/L.Control.Locate.min.js"></script>
 
   <!-- Font Inter -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
 
   <style>
-    body, html { margin: 0; padding: 0; height: 100%; font-family: 'Inter', sans-serif; }
-    #map { width: 100%; height: 100vh; }
+    body, html {
+      margin: 0; padding: 0; height: 100%; font-family: 'Inter', sans-serif;
+    }
+    #map {
+      width: 100%; height: 100vh;
+    }
 
-    /* Toggle button positioned below zoom controls */
+    /* Toggle button */
     .toggle-btn {
       position: absolute;
-      top: 100px;
-      left: 10px;
+      top: 10px; left: 10px;
       background: #007BFF;
       color: white;
       padding: 6px 12px;
@@ -35,10 +38,11 @@
       font-size: 14px;
     }
 
-    /* Sidebar bottom-left */
+    /* Sidebar */
     .sidebar {
       position: absolute;
-      bottom: 10px; left: 10px;
+      top: 50px;     /* sekarang muncul tepat di bawah tombol */
+      left: 10px;
       background: white;
       width: 300px;
       max-height: 200px;
@@ -69,6 +73,7 @@
     .entry div { margin: 2px 0; }
     .entry b { font-weight: 600; }
 
+    /* WhatsApp button in popup */
     .whatsapp-btn {
       display: inline-block;
       background: #25D366;
@@ -80,64 +85,132 @@
       font-size: 12px;
     }
 
-    /* Move locate control below zoom */
-    .leaflet-control-locate a { margin-top: 80px; }
+    /* Move locate control under zoom */
+    .leaflet-control-locate a {
+      margin-top: 8px !important;  /* diperbaiki dari 80px */
+    }
+
+    /* 1. Tarik garis batas ke bawah */
+    .leaflet-overlay-pane {
+      z-index: 300 !important;
+    }
+    /* 2. Marker di atas garis batas */
+    .leaflet-marker-pane {
+      z-index: 600 !important;
+    }
+    /* 3. Soften styling batas */
+    .leaflet-overlay-pane path {
+      stroke-width: 1px !important;
+      opacity: 0.6 !important;
+    }
+    /* 4. Pengecilan marker */
+    .leaflet-marker-icon {
+      transform: scale(0.8);
+      transform-origin: center center;
+    }
+
+    /* Batasi lebar popup & jangan pecah link */
+    .leaflet-popup-content-wrapper {
+      max-width: 250px !important;
+    }
+    .leaflet-popup-content a[target="_blank"] {
+      white-space: nowrap;
+    }
   </style>
 </head>
 <body>
 
-<div class="toggle-btn" onclick="toggleSidebar()">Daftar UMKM</div>
-<div class="sidebar" id="sidebar">
-  <h3>Daftar UMKM</h3>
-  <div id="list"></div>
-</div>
-<div id="map"></div>
+  <div class="toggle-btn" onclick="toggleSidebar()">Daftar UMKM</div>
+  <div class="sidebar" id="sidebar">
+    <h3>Daftar UMKM</h3>
+    <div id="list"></div>
+  </div>
+  <div id="map"></div>
 
-<script>
-  var map = L.map('map').setView([-7.2, 107.9], 11);
+  <script>
+    var map = L.map('map').setView([-7.2, 107.9], 11);
 
-  // Basemaps
-  var osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-  var sat = L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png');
-  var topo = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png');
-  L.control.layers({ 'OSM': osm, 'Satelit': sat, 'Medan': topo }).addTo(map);
+    // Basemaps
+    var osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+    var sat = L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png');
+    var topo = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png');
+    L.control.layers({ 'OSM': osm, 'Satelit': sat, 'Medan': topo }).addTo(map);
 
-  // Locate control
-  L.control.locate({ position: 'topright', strings: { title: 'Tampilkan Lokasi Saya' } }).addTo(map);
+    // Locate control
+    L.control.locate({
+      position: 'topright',
+      strings: { title: 'Tampilkan Lokasi Saya' }
+    }).addTo(map);
 
-  // Icons
-  var icons = {
-    'SEMEN': L.icon({ iconUrl: 'https://cdn-icons-png.flaticon.com/512/1946/1946929.png', iconSize: [25,25] }),
-    'BANGUNAN': L.icon({ iconUrl: 'https://cdn-icons-png.flaticon.com/512/69/69524.png', iconSize: [25,25] }),
-    'default': L.icon({ iconUrl: 'https://cdn-icons-png.flaticon.com/512/2609/2609282.png', iconSize: [25,25] })
-  };
-  function getIcon(type) { return icons[type?.toUpperCase()]||icons['default']; }
+    // Icons
+    var icons = {
+      'SEMEN': L.icon({ iconUrl: 'https://cdn-icons-png.flaticon.com/512/1946/1946929.png', iconSize: [25,25] }),
+      'BANGUNAN': L.icon({ iconUrl: 'https://cdn-icons-png.flaticon.com/512/69/69524.png', iconSize: [25,25] }),
+      'default': L.icon({ iconUrl: 'https://cdn-icons-png.flaticon.com/512/2609/2609282.png', iconSize: [25,25] })
+    };
+    function getIcon(type) { return icons[type?.toUpperCase()]||icons['default']; }
 
-  function createWhatsAppLink(phone) { let num=phone.replace(/\D/g,''); if(num.startsWith('0')) num='62'+num.slice(1); return 'https://wa.me/'+num; }
+    function createWhatsAppLink(phone) {
+      let num = phone.replace(/\D/g,'');
+      if(num.startsWith('0')) num = '62'+num.slice(1);
+      return 'https://wa.me/'+num;
+    }
 
-  var listEl=document.getElementById('list'), counter=1;
+    var listEl = document.getElementById('list'),
+        counter = 1;
 
-  // Data UMKM
-  fetch('Data.geojson').then(r=>r.json()).then(d=>{
-    L.geoJSON(d,{ pointToLayer:(f,latlng)=>L.marker(latlng,{icon:getIcon(f.properties.BARANG_UNG)}), onEachFeature:(f,layer)=>{
-        let p=f.properties, ll=layer.getLatLng();
-        let route='https://www.google.com/maps/dir/?api=1&destination='+ll.lat+','+ll.lng;
-        let wa = p.NO__TLP?'<br><a class="whatsapp-btn" href="'+createWhatsAppLink(p.NO__TLP)+'" target="_blank">Hubungi WA</a>':'';
-        let popup='<b>'+p.NAMA_USAHA+'</b><br>Jenis: '+p.JENIS+'<br>Barang: '+p.BARANG_UNG+'<br>Alamat: '+p.ALAMAT+'<br>Pemilik: <b>'+p.NAMA_PEMIL+'</b>'+wa+'<br><a href="'+route+'" target="_blank">Rute</a>';
-        layer.bindPopup(popup);
-        let div=document.createElement('div'); div.className='entry';
-        div.innerHTML = counter+'. '+p.NAMA_USAHA+'<div>Pemilik: <b>'+p.NAMA_PEMIL+'</b></div><div>'+p.ALAMAT+'</div>';
-        div.onclick=()=>{ map.setView(ll,15); layer.openPopup(); };
-        listEl.appendChild(div); counter++;
-    }}).addTo(map);
-  });
+    // Data UMKM
+    fetch('Data.geojson').then(r => r.json()).then(d => {
+      L.geoJSON(d, {
+        pointToLayer: (f, latlng) => L.marker(latlng, { icon: getIcon(f.properties.BARANG_UNG) }),
+        onEachFeature: (f, layer) => {
+          let p = f.properties, ll = layer.getLatLng();
+          let route = 'https://www.google.com/maps/dir/?api=1'
+                    + '&destination=' + ll.lat + ',' + ll.lng
+                    + '&travelmode=driving';
+          let wa = p.NO__TLP
+                 ? '<br><a class="whatsapp-btn" href="' + createWhatsAppLink(p.NO__TLP) + '" target="_blank">Hubungi WA</a>'
+                 : '';
+          let popup = '<b>' + p.NAMA_USAHA + '</b><br>'
+                    + 'Jenis: ' + p.JENIS + '<br>'
+                    + 'Barang: ' + p.BARANG_UNG + '<br>'
+                    + 'Alamat: ' + p.ALAMAT + '<br>'
+                    + 'Pemilik: <b>' + p.NAMA_PEMIL + '</b>' + wa + '<br>'
+                    + '<a href="' + route + '" target="_blank">Rute</a>';
+          layer.bindPopup(popup);
 
-  // Batas
-  fetch('Batas Administrasi.geojson').then(r=>r.json()).then(d=>{
-    L.geoJSON(d,{ style:{color:'red',weight:2,fillOpacity:0}, onEachFeature:(f,l)=>l.bindPopup(Object.entries(f.properties).map(([k,v])=>'<b>'+k+'</b>: '+v).join('<br>')) }).addTo(map);
-  });
+          let div = document.createElement('div');
+          div.className = 'entry';
+          div.innerHTML = counter + '. ' + p.NAMA_USAHA
+                        + '<div>Pemilik: <b>' + p.NAMA_PEMIL + '</b></div>'
+                        + '<div>' + p.ALAMAT + '</div>';
+          div.onclick = () => {
+            map.setView(ll, 15);
+            layer.openPopup();
+          };
+          listEl.appendChild(div);
+          counter++;
+        }
+      }).addTo(map);
+    });
 
-  function toggleSidebar(){ var sb=document.getElementById('sidebar'); sb.style.display = sb.style.display==='block'?'none':'block'; }
-</script>
+    // Batas Administrasi
+    fetch('Batas Administrasi.geojson').then(r => r.json()).then(d => {
+      L.geoJSON(d, {
+        style: { color: 'red', weight: 2, fillOpacity: 0 },
+        onEachFeature: (f, l) => {
+          let props = Object.entries(f.properties)
+                            .map(([k,v]) => '<b>'+k+'</b>: '+v).join('<br>');
+          l.bindPopup(props);
+        }
+      }).addTo(map);
+    });
+
+    function toggleSidebar() {
+      let sb = document.getElementById('sidebar');
+      sb.style.display = sb.style.display === 'block' ? 'none' : 'block';
+    }
+  </script>
+
 </body>
 </html>

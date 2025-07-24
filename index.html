@@ -30,7 +30,7 @@
 
     .sidebar {
       position: absolute;
-      top: 80px; left: 10px;
+      bottom: 10px; left: 10px;
       background: white;
       width: 300px;
       max-height: 70%;
@@ -107,26 +107,16 @@
   // Lokasi Terkini
   L.control.locate({ position: 'topright', strings: { title: "Tampilkan Lokasi Saya" } }).addTo(map);
 
-  // ======= Bagian Ikon yang Diubah =======
+  // Ikon berdasarkan jenis usaha
   var icons = {
-    'SEMEN': L.icon({
-      iconUrl: 'https://cdn-icons-png.flaticon.com/512/1946/1946929.png', // karung semen
-      iconSize: [25, 25]
-    }),
-    'BANGUNAN': L.icon({
-      iconUrl: 'https://cdn-icons-png.flaticon.com/512/69/69524.png', // rumah biasa
-      iconSize: [25, 25]
-    }),
-    'default': L.icon({
-      iconUrl: 'https://cdn-icons-png.flaticon.com/512/2609/2609282.png', // marker kuning/oranye
-      iconSize: [25, 25]
-    })
+    'SEMEN': L.icon({ iconUrl: 'https://cdn-icons-png.flaticon.com/512/1946/1946929.png', iconSize: [25, 25] }),
+    'BANGUNAN': L.icon({ iconUrl: 'https://cdn-icons-png.flaticon.com/512/69/69524.png', iconSize: [25, 25] }),
+    'default': L.icon({ iconUrl: 'https://cdn-icons-png.flaticon.com/512/2609/2609282.png', iconSize: [25, 25] })
   };
 
   function getIcon(type) {
     return icons[type?.toUpperCase()] || icons['default'];
   }
-  // ======= Selesai Ikon =======
 
   function createWhatsAppLink(phone) {
     let clean = phone.replace(/\D/g, '');
@@ -135,6 +125,7 @@
   }
 
   var sidebarList = document.getElementById('list');
+  var umkmCounter = 1;
 
   // Load UMKM GeoJSON
   fetch('Data.geojson')
@@ -142,18 +133,13 @@
     .then(data => {
       L.geoJSON(data, {
         pointToLayer: function (feature, latlng) {
-          return L.marker(latlng, {
-            icon: getIcon(feature.properties.BARANG_UNG)
-          });
+          return L.marker(latlng, { icon: getIcon(feature.properties.BARANG_UNG) });
         },
         onEachFeature: function (feature, layer) {
           let p = feature.properties;
-          // ======= Popup dengan Link Rute =======
           let dest = layer.getLatLng();
           let mapsLink = `https://www.google.com/maps/dir/?api=1&destination=${dest.lat},${dest.lng}`;
-          let waBtn = p.NO__TLP
-            ? `<br><a class="whatsapp-btn" target="_blank" href="${createWhatsAppLink(p.NO__TLP)}">Hubungi via WhatsApp</a>`
-            : '';
+          let waBtn = p.NO__TLP ? `<br><a class="whatsapp-btn" target="_blank" href="${createWhatsAppLink(p.NO__TLP)}">Hubungi via WhatsApp</a>` : '';
 
           let popup = `
             <b>${p.NAMA_USAHA}</b><br>
@@ -168,17 +154,14 @@
             ${waBtn}
           `;
           layer.bindPopup(popup);
-          // ======= Selesai Popup =======
 
-          // Tambah ke sidebar
+          // Tambah ke sidebar dengan nomor dan format huruf kapital hanya awal, bold nama pemilik
           var item = document.createElement('div');
           item.className = 'entry';
-          item.innerHTML = `<b>${p.NAMA_USAHA}</b><br>${p.ALAMAT}`;
-          item.onclick = () => {
-            map.setView(layer.getLatLng(), 16);
-            layer.openPopup();
-          };
+          item.innerHTML = `${umkmCounter}. ${toTitleCase(p.NAMA_USAHA)}<br>Pemilik: <b>${toTitleCase(p.NAMA_PEMIL)}</b><br>${p.ALAMAT}`;
+          item.onclick = () => { map.setView(layer.getLatLng(), 16); layer.openPopup(); };
           sidebarList.appendChild(item);
+          umkmCounter++;
         }
       }).addTo(map);
     });
@@ -190,9 +173,7 @@
       L.geoJSON(data, {
         style: { color: 'red', weight: 2, fillOpacity: 0 },
         onEachFeature: function (feature, layer) {
-          let info = Object.entries(feature.properties)
-            .map(([k, v]) => `<b>${k}</b>: ${v}`)
-            .join('<br>');
+          let info = Object.entries(feature.properties).map(([k, v]) => `<b>${k}</b>: ${v}`).join('<br>');
           layer.bindPopup(info);
         }
       }).addTo(map);
@@ -202,6 +183,11 @@
   function toggleSidebar() {
     const sb = document.getElementById('sidebar');
     sb.style.display = sb.style.display === 'block' ? 'none' : 'block';
+  }
+
+  // Helper: Title Case
+  function toTitleCase(str) {
+    return str.toLowerCase().split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
   }
 </script>
 

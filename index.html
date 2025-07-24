@@ -104,7 +104,7 @@
     /* LOCATE CONTROL */
     .leaflet-control-locate { margin-top:0!important; }
 
-    /* ZOOM CONTROL: turunkan 60px agar tidak tertutup tombol ☰ */
+    /* ZOOM CONTROL */
     .leaflet-control-zoom {
       margin-top: 60px !important;
     }
@@ -193,19 +193,24 @@
         onEachFeature: (f, layer) => {
           var p = f.properties,
               ll = layer.getLatLng(),
+              coords = ll.lat.toFixed(6) + ', ' + ll.lng.toFixed(6),
               route = 'https://www.google.com/maps/dir/?api=1'
-                    +'&destination='+ll.lat+','+ll.lng+'&travelmode=driving',
+                    + '&destination='+ll.lat+','+ll.lng+'&travelmode=driving',
               waBtn = p.NO__TLP
                     ? '<br><a class="whatsapp-btn" href="'+createWhatsAppLink(p.NO__TLP)+
                       '" target="_blank">Hubungi WA</a>'
                     : '';
 
+          // enhanced popup
           var popup = '<b>'+p.NAMA_USAHA+'</b><br>'
-                    +'Jenis: '+(p.JENIS||'-')+'<br>'
-                    +'Barang: '+p.BARANG_UNG+'<br>'
-                    +'Alamat: '+p.ALAMAT+'<br>'
-                    +'Pemilik: <b>'+p.NAMA_PEMIL+'</b>'+ waBtn +'<br>'
-                    +'<a href="'+route+'" target="_blank">Rute</a>';
+                    + 'Barang: '+p.BARANG_UNG+'<br>'
+                    + 'Alamat: '+p.ALAMAT+'<br>'
+                    + 'Pemilik: <b>'+ (p.NAMA_PEMIL||'-') +'</b><br>'
+                    + 'No. Telp: '+ (p.NO__TLP||'-') + waBtn + '<br>'
+                    + 'Koordinat: '+ coords + '<br>'
+                    + 'Media Promosi: '+ (p.Media_Prom||'-') + '<br>'
+                    + 'Jenis Wilayah: '+ (p.JENIS_WILA||'-') + '<br>'
+                    + '<a href="'+ route +'" target="_blank">Rute</a>';
           layer.bindPopup(popup);
 
           // Sidebar entry
@@ -214,10 +219,7 @@
           div.innerHTML = counter+'. '+p.NAMA_USAHA
                         +'<div>Pemilik: <b>'+p.NAMA_PEMIL+'</b></div>'
                         +'<div>'+p.ALAMAT+'</div>';
-          div.onclick = function(){
-            map.setView(ll,15);
-            layer.openPopup();
-          };
+          div.onclick = function(){ map.setView(ll,15); layer.openPopup(); };
           listEl.appendChild(div);
           counter++;
         }
@@ -230,7 +232,7 @@
         style:{ color:'red', weight:2, fillOpacity:0 },
         onEachFeature: (f,layer) => {
           var props = Object.entries(f.properties)
-                        .map(e=>'<'+'b'+ '>'+e[0]+'</b>: '+e[1]).join('<br>');
+                        .map(e=>'<b>'+e[0]+'</b>: '+e[1]).join('<br>');
           layer.bindPopup(props);
         }
       }).addTo(map);

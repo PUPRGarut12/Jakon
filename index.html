@@ -1,134 +1,135 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Peta Interaktif UMKM - GeoJSON</title>
   <meta charset="utf-8" />
+  <title>Peta Interaktif UMKM</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <!-- Leaflet -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <!-- Leaflet CSS & JS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-  <!-- Plugin Geolocation -->
-  <script src="https://unpkg.com/leaflet.locatecontrol/dist/L.Control.Locate.min.js"></script>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet.locatecontrol/dist/L.Control.Locate.min.css" />
-
+  <!-- Sidebar CSS -->
   <style>
-    body, html { margin: 0; padding: 0; height: 100%; }
-    #map { width: 100%; height: 100vh; }
+    body, html { margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
+    #map { height: 100vh; }
+
     .sidebar {
       position: absolute;
-      top: 10px; left: 10px;
-      background: white; width: 300px; height: 95%;
-      overflow-y: auto; z-index: 1000;
+      bottom: 60px;
+      left: 10px;
+      width: 260px;
+      max-height: 45vh;
+      overflow-y: auto;
+      background: white;
+      border: 2px solid #ccc;
       border-radius: 8px;
-      box-shadow: 0 0 5px rgba(0,0,0,0.3);
+      display: none;
+      z-index: 999;
     }
-    .sidebar h3 {
-      margin: 0; padding: 10px;
-      background: #007BFF; color: white;
-      text-align: center;
-      border-radius: 8px 8px 0 0;
-    }
-    .entry { padding: 10px; border-bottom: 1px solid #ccc; cursor: pointer; }
-    .entry:hover { background: #eee; }
-    .whatsapp-btn {
-      display: inline-block;
-      background: #25D366;
+
+    .sidebar-header {
+      background: #007bff;
       color: white;
-      padding: 4px 8px;
-      margin-top: 5px;
-      border-radius: 4px;
-      text-decoration: none;
+      padding: 10px;
+      text-align: center;
+      font-weight: bold;
+      border-top-left-radius: 8px;
+      border-top-right-radius: 8px;
+    }
+
+    .sidebar-item {
+      padding: 8px 10px;
+      cursor: pointer;
+      border-bottom: 1px solid #ddd;
+    }
+
+    .sidebar-item:hover {
+      background: #f1f1f1;
+    }
+
+    .toggle-btn {
+      position: absolute;
+      bottom: 10px;
+      left: 10px;
+      z-index: 1000;
+      background: #007bff;
+      color: white;
+      padding: 8px 12px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
     }
   </style>
 </head>
 <body>
 
-<div class="sidebar" id="sidebar">
-  <h3>Daftar UMKM</h3>
-  <div id="list"></div>
-</div>
 <div id="map"></div>
+<button class="toggle-btn" onclick="toggleSidebar()">Daftar UMKM</button>
+<div class="sidebar" id="sidebar">
+  <div class="sidebar-header">List UMKM</div>
+  <div id="umkmList"></div>
+</div>
 
 <script>
-  var map = L.map('map').setView([-7.2, 107.9], 11);
+  // Inisialisasi peta
+  var map = L.map('map').setView([-7.5, 107.9], 9);
 
-  // Basemap Layers
-  var osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OSM' }).addTo(map);
-  var satellite = L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', { attribution: '© HOT OSM' });
-  var topo = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', { attribution: '© OpenTopoMap' });
+  // Basemap layers
+  var osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OSM' }).addTo(map);
+  var satelit = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: '© ESRI' });
+  var terrain = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', { attribution: '© OpenTopoMap' });
 
   var baseMaps = {
     "OpenStreetMap": osm,
-    "Satelit": satellite,
-    "Medan": topo
+    "Satelit": satelit,
+    "Medan": terrain
   };
+
+  // Layer control
   L.control.layers(baseMaps).addTo(map);
 
-  // Lokasi Terkini
-  L.control.locate({ position: 'topright', strings: { title: "Tampilkan Lokasi Saya" } }).addTo(map);
-
-  // Ikon berdasarkan jenis usaha
-  var icons = {
-    'SEMEN': L.icon({ iconUrl: 'https://cdn-icons-png.flaticon.com/512/1536/1536015.png', iconSize: [25, 25] }),
-    'BANGUNAN': L.icon({ iconUrl: 'https://cdn-icons-png.flaticon.com/512/2490/2490422.png', iconSize: [25, 25] }),
-    'default': L.icon({ iconUrl: 'https://cdn-icons-png.flaticon.com/512/684/684908.png', iconSize: [25, 25] })
-  };
-
-  function getIcon(type) {
-    return icons[type?.toUpperCase()] || icons['default'];
-  }
-
-  function createWhatsAppLink(phone) {
-    let clean = phone.replace(/\D/g, '');
-    if (clean.startsWith('0')) clean = '62' + clean.substring(1);
-    return `https://wa.me/${clean}`;
-  }
-
-  var geojsonLayer, sidebarList = document.getElementById('list');
-
-  // Load UMKM GeoJSON
+  // Load data UMKM (GeoJSON)
   fetch('Data.geojson')
     .then(res => res.json())
     .then(data => {
-      geojsonLayer = L.geoJSON(data, {
+      var umkmLayer = L.geoJSON(data, {
         pointToLayer: function (feature, latlng) {
-          return L.marker(latlng, {
-            icon: getIcon(feature.properties.BARANG_UNG)
+          let jenis = (feature.properties.jenis_usaha || '').toLowerCase();
+          let warna = 'yellow';
+          let icon = L.icon({
+            iconUrl: `https://cdn-icons-png.flaticon.com/512/684/684908.png`,
+            iconSize: [25, 35],
+            iconAnchor: [12, 35],
+            popupAnchor: [0, -35]
           });
+
+          return L.marker(latlng, { icon: icon });
         },
         onEachFeature: function (feature, layer) {
-          let p = feature.properties;
-          let waBtn = p.NO__TLP ? `<br><a class="whatsapp-btn" target="_blank" href="${createWhatsAppLink(p.NO__TLP)}">Hubungi via WhatsApp</a>` : '';
+          var props = feature.properties;
+          let isi = `<b>${props.nama || 'Tidak diketahui'}</b><br>${props.alamat || ''}<br>`;
+          isi += `<b>Jenis:</b> ${props.jenis_usaha || '-'}<br>`;
+          if (props.no_wa) {
+            isi += `<a href="https://wa.me/${props.no_wa}" target="_blank">📱 Hubungi via WhatsApp</a>`;
+          }
+          layer.bindPopup(isi);
 
-          let popup = `
-            <b>${p.NAMA_USAHA}</b><br>
-            Jenis: ${p.JENIS}<br>
-            Barang: ${p.BARANG_UNG}<br>
-            Alamat: ${p.ALAMAT}<br>
-            Pemilik: ${p.NAMA_PEMIL}<br>
-            Telp: ${p.NO__TLP || '-'}<br>
-            Media: ${p.Media_Prom || '-'}<br>
-            Wilayah: ${p.JENIS_WILA}
-            ${waBtn}
-          `;
-          layer.bindPopup(popup);
-
-          // Tambah ke sidebar
+          // Sidebar list
           var item = document.createElement('div');
-          item.className = 'entry';
-          item.innerHTML = `<b>${p.NAMA_USAHA}</b><br>${p.ALAMAT}`;
+          item.className = 'sidebar-item';
+          item.innerHTML = `<b>${props.nama}</b><br>${props.alamat || ''}`;
           item.onclick = () => {
-            map.setView(layer.getLatLng(), 16);
+            map.setView(layer.getLatLng(), 15);
             layer.openPopup();
           };
-          sidebarList.appendChild(item);
+          document.getElementById('umkmList').appendChild(item);
         }
       }).addTo(map);
     });
 
-  // Batas Kecamatan
+  // Batas Administrasi
   fetch('Batas Administrasi.geojson')
     .then(res => res.json())
     .then(data => {
@@ -139,12 +140,20 @@
           fillOpacity: 0
         },
         onEachFeature: function (feature, layer) {
-          let props = feature.properties;
-          let info = Object.entries(props).map(([k, v]) => `<b>${k}</b>: ${v}`).join('<br>');
-          layer.bindPopup(info);
+          let text = '';
+          for (const key in feature.properties) {
+            text += `<b>${key}:</b> ${feature.properties[key]}<br>`;
+          }
+          layer.bindPopup(text);
         }
       }).addTo(map);
     });
+
+  // Fungsi toggle sidebar
+  function toggleSidebar() {
+    var sb = document.getElementById('sidebar');
+    sb.style.display = (sb.style.display === 'none' || sb.style.display === '') ? 'block' : 'none';
+  }
 </script>
 
 </body>

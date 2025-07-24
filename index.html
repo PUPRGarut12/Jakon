@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Peta Interaktif UMKM & Batas</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-sidebar-v2/css/leaflet-sidebar.min.css" />
+  <style>
+    html, body, #map { height: 100%; margin: 0; padding: 0; }
+    .leaflet-sidebar .sidebar-content ul {
+      list-style: none;
+      padding-left: 15px;
+      margin: 0;
+    }
+    .leaflet-sidebar .sidebar-content li {
+      margin: 8px 0;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <div id="sidebar" class="leaflet-sidebar collapsed">
+    <div class="leaflet-sidebar-tabs">
+      <ul role="tablist">
+        <li><a href="#home" role="tab"><i class="fa fa-bars"></i></a></li>
+      </ul>
+    </div>
+    <div class="leaflet-sidebar-content">
+      <div class="leaflet-sidebar-pane" id="home">
+        <h1 class="leaflet-sidebar-header">Daftar UMKM</h1>
+        <ul id="sidebar-list"></ul>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet-sidebar-v2/js/leaflet-sidebar.min.js"></script>
+  <script src="https://unpkg.com/leaflet-ajax"></script>
+
+  <script>
+    var map = L.map('map').setView([-7.3, 107.8], 10);
+
+    // Basemap
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OSM Contributors'
+    }).addTo(map);
+
+    // Sidebar
+    var sidebar = L.control.sidebar({ container: 'sidebar' }).addTo(map);
+    sidebar.show();
+
+    // Lokasi saat ini
+    map.locate({ setView: true, watch: true, maxZoom: 16 });
+    var userMarker, accuracyCircle;
+    map.on("locationfound", function (e) {
+      if (!userMarker) {
+        userMarker = L.marker(e.latlng, {
+          icon: L.icon({
+            iconUrl: 'https://maps.gstatic.com/mapfiles/ms2/micons/blue-dot.png',
+            iconSize: [32, 32],
+            iconAnchor: [16, 32]
+          })
+        }).addTo(map).bindPopup("📍 Lokasi Anda").openPopup();
+
+        accuracyCircle = L.circle(e.latlng, {
+          radius: e.accuracy,
+          color: '#136aec',
+          fillColor: '#136aec',
+          fillOpacity: 0.2
+        }).addTo(map);
+      } else {
+        userMarker.setLatLng(e.latlng);
+        accuracyCircle.setLatLng(e.latlng).setRadius(e.accuracy);
+      }
+    });
+
+    // Layer UMKM dari GeoJSON
+    fetch("Data.geojson")
+      .then(res => res.json())
+      .then(data => {
+        const sidebarList = document.getElementById("sidebar-list");
+        L.geoJSON(data, {
+          pointToLayer: function (feature, latlng) {
+            const props = feature.properties;
+            let popupContent = "<b>Detail UMKM:</b><br>";
+            for (let key in props) {
+              popupContent += `<b>${key}</b>: ${props[key]}<br>`;
+            }
+
+            const marker = L.marker(latlng).bindPopup(popupContent);
+
+            const li = document.createElement("li");
+            li.textContent = props.nama_usaha || "UMKM";
+            li.onclick = () => {
+              map.setView(latlng, 16);
+              marker.openPopup();
+            };
+            sidebarList.appendChild(li);
+
+            return marker;
+          }
+        }).addTo(map);
+      });
+
+    // Layer Batas Administrasi
+    fetch("Batas Administrasi.geojson")
+      .then(res => res.json())
+      .then(data => {
+        L.geoJSON(data, {
+          style: {
+            color: "red",
+            weight: 2
+          },
+          onEachFeature: function (feature, layer) {
+            let popupContent = "<b>Informasi Wilayah:</b><br>";
+            for (let key in feature.properties) {
+              popupContent += `<b>${key}</b>: ${feature.properties[key]}<br>`;
+            }
+            layer.bindPopup(popupContent);
+          }
+        }).addTo(map);
+      });
+  </script>
+</body>
+</html>

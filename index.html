@@ -24,10 +24,12 @@
       width: 100%; height: 100vh;
     }
 
-    /* Toggle button */
+    /* Toggle button – pindah ke kiri bawah */
     .toggle-btn {
       position: absolute;
-      top: 10px; left: 10px;
+      bottom: 220px;    /* di atas sidebar */
+      left: 10px;
+      top: auto;
       background: #007BFF;
       color: white;
       padding: 6px 12px;
@@ -41,9 +43,9 @@
     /* Sidebar bottom-left */
     .sidebar {
       position: absolute;
-      bottom: 10px;   /* pindah ke bawah */
+      bottom: 10px;
       left: 10px;
-      top: auto;      /* hapus positioning atas */
+      top: auto;
       background: white;
       width: 300px;
       max-height: 200px;
@@ -88,12 +90,12 @@
 
     /* Locate control tweak */
     .leaflet-control-locate a {
-      margin-top: 6px !important;  /* semula 8px */
+      margin-top: 6px !important;
     }
 
     /* Batas & marker styling */
     .leaflet-overlay-pane { z-index: 300 !important; }
-    .leaflet-marker-pane { z-index: 600 !important; }
+    .leaflet-marker-pane  { z-index: 600 !important; }
     .leaflet-overlay-pane path {
       stroke-width: 1px !important;
       opacity: 0.6 !important;
@@ -126,8 +128,17 @@
 
     // Basemaps
     var osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-    var sat = L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png');
+
+    // Satelit citra nyata (ESRI World Imagery)
+    var sat = L.tileLayer(
+      'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+      {
+        attribution: 'Tiles &copy; Esri &mdash; Sumber: Esri, i-cubed, USDA, USGS, AEX, GeoEye'
+      }
+    );
+
     var topo = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png');
+
     L.control.layers({ 'OSM': osm, 'Satelit': sat, 'Medan': topo }).addTo(map);
 
     // Locate control
@@ -136,18 +147,27 @@
       strings: { title: 'Tampilkan Lokasi Saya' }
     }).addTo(map);
 
-    // Icons
+    // Icons: ganti SEMEN dengan URL valid
     var icons = {
-      'SEMEN': L.icon({ iconUrl: 'https://cdn-icons-png.flaticon.com/512/1946/1946929.png', iconSize: [25,25] }),
-      'BANGUNAN': L.icon({ iconUrl: 'https://cdn-icons-png.flaticon.com/512/69/69524.png', iconSize: [25,25] }),
-      'default': L.icon({ iconUrl: 'https://cdn-icons-png.flaticon.com/512/2609/2609282.png', iconSize: [25,25] })
+      'SEMEN': L.icon({
+        iconUrl: 'https://cdn-icons-png.flaticon.com/512/2329/2329178.png',
+        iconSize: [25,25]
+      }),
+      'BANGUNAN': L.icon({
+        iconUrl: 'https://cdn-icons-png.flaticon.com/512/69/69524.png',
+        iconSize: [25,25]
+      }),
+      'default': L.icon({
+        iconUrl: 'https://cdn-icons-png.flaticon.com/512/2609/2609282.png',
+        iconSize: [25,25]
+      })
     };
     function getIcon(type) { return icons[type?.toUpperCase()]||icons['default']; }
 
     function createWhatsAppLink(phone) {
       let num = phone.replace(/\D/g,'');
-      if(num.startsWith('0')) num = '62'+num.slice(1);
-      return 'https://wa.me/'+num;
+      if(num.startsWith('0')) num = '62' + num.slice(1);
+      return 'https://wa.me/' + num;
     }
 
     var listEl = document.getElementById('list'),

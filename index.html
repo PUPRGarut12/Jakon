@@ -107,16 +107,26 @@
   // Lokasi Terkini
   L.control.locate({ position: 'topright', strings: { title: "Tampilkan Lokasi Saya" } }).addTo(map);
 
-  // Ikon berdasarkan jenis usaha
+  // ======= Bagian Ikon yang Diubah =======
   var icons = {
-    'SEMEN': L.icon({ iconUrl: 'https://cdn-icons-png.flaticon.com/512/1536/1536015.png', iconSize: [25, 25] }),
-    'BANGUNAN': L.icon({ iconUrl: 'https://cdn-icons-png.flaticon.com/512/2490/2490422.png', iconSize: [25, 25] }),
-    'default': L.icon({ iconUrl: 'https://cdn-icons-png.flaticon.com/512/252/252025.png', iconSize: [25, 25] }) // warna kuning
+    'SEMEN': L.icon({
+      iconUrl: 'https://cdn-icons-png.flaticon.com/512/1946/1946929.png', // karung semen
+      iconSize: [25, 25]
+    }),
+    'BANGUNAN': L.icon({
+      iconUrl: 'https://cdn-icons-png.flaticon.com/512/69/69524.png', // rumah biasa
+      iconSize: [25, 25]
+    }),
+    'default': L.icon({
+      iconUrl: 'https://cdn-icons-png.flaticon.com/512/2609/2609282.png', // marker kuning/oranye
+      iconSize: [25, 25]
+    })
   };
 
   function getIcon(type) {
     return icons[type?.toUpperCase()] || icons['default'];
   }
+  // ======= Selesai Ikon =======
 
   function createWhatsAppLink(phone) {
     let clean = phone.replace(/\D/g, '');
@@ -124,13 +134,13 @@
     return `https://wa.me/${clean}`;
   }
 
-  var geojsonLayer, sidebarList = document.getElementById('list');
+  var sidebarList = document.getElementById('list');
 
   // Load UMKM GeoJSON
   fetch('Data.geojson')
     .then(res => res.json())
     .then(data => {
-      geojsonLayer = L.geoJSON(data, {
+      L.geoJSON(data, {
         pointToLayer: function (feature, latlng) {
           return L.marker(latlng, {
             icon: getIcon(feature.properties.BARANG_UNG)
@@ -138,7 +148,12 @@
         },
         onEachFeature: function (feature, layer) {
           let p = feature.properties;
-          let waBtn = p.NO__TLP ? `<br><a class="whatsapp-btn" target="_blank" href="${createWhatsAppLink(p.NO__TLP)}">Hubungi via WhatsApp</a>` : '';
+          // ======= Popup dengan Link Rute =======
+          let dest = layer.getLatLng();
+          let mapsLink = `https://www.google.com/maps/dir/?api=1&destination=${dest.lat},${dest.lng}`;
+          let waBtn = p.NO__TLP
+            ? `<br><a class="whatsapp-btn" target="_blank" href="${createWhatsAppLink(p.NO__TLP)}">Hubungi via WhatsApp</a>`
+            : '';
 
           let popup = `
             <b>${p.NAMA_USAHA}</b><br>
@@ -148,10 +163,12 @@
             Pemilik: ${p.NAMA_PEMIL}<br>
             Telp: ${p.NO__TLP || '-'}<br>
             Media: ${p.Media_Prom || '-'}<br>
-            Wilayah: ${p.JENIS_WILA}
+            Wilayah: ${p.JENIS_WILA}<br>
+            <a href="${mapsLink}" target="_blank">🔗 Rute ke Lokasi</a>
             ${waBtn}
           `;
           layer.bindPopup(popup);
+          // ======= Selesai Popup =======
 
           // Tambah ke sidebar
           var item = document.createElement('div');
@@ -171,14 +188,11 @@
     .then(res => res.json())
     .then(data => {
       L.geoJSON(data, {
-        style: {
-          color: 'red',
-          weight: 2,
-          fillOpacity: 0
-        },
+        style: { color: 'red', weight: 2, fillOpacity: 0 },
         onEachFeature: function (feature, layer) {
-          let props = feature.properties;
-          let info = Object.entries(props).map(([k, v]) => `<b>${k}</b>: ${v}`).join('<br>');
+          let info = Object.entries(feature.properties)
+            .map(([k, v]) => `<b>${k}</b>: ${v}`)
+            .join('<br>');
           layer.bindPopup(info);
         }
       }).addTo(map);

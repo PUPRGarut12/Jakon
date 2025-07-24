@@ -38,11 +38,12 @@
       font-size: 14px;
     }
 
-    /* Sidebar */
+    /* Sidebar bottom-left */
     .sidebar {
       position: absolute;
-      top: 50px;     /* sekarang muncul tepat di bawah tombol */
+      bottom: 10px;   /* pindah ke bawah */
       left: 10px;
+      top: auto;      /* hapus positioning atas */
       background: white;
       width: 300px;
       max-height: 200px;
@@ -73,7 +74,7 @@
     .entry div { margin: 2px 0; }
     .entry b { font-weight: 600; }
 
-    /* WhatsApp button in popup */
+    /* WhatsApp in popup */
     .whatsapp-btn {
       display: inline-block;
       background: #25D366;
@@ -85,31 +86,24 @@
       font-size: 12px;
     }
 
-    /* Move locate control under zoom */
+    /* Locate control tweak */
     .leaflet-control-locate a {
-      margin-top: 8px !important;  /* diperbaiki dari 80px */
+      margin-top: 6px !important;  /* semula 8px */
     }
 
-    /* 1. Tarik garis batas ke bawah */
-    .leaflet-overlay-pane {
-      z-index: 300 !important;
-    }
-    /* 2. Marker di atas garis batas */
-    .leaflet-marker-pane {
-      z-index: 600 !important;
-    }
-    /* 3. Soften styling batas */
+    /* Batas & marker styling */
+    .leaflet-overlay-pane { z-index: 300 !important; }
+    .leaflet-marker-pane { z-index: 600 !important; }
     .leaflet-overlay-pane path {
       stroke-width: 1px !important;
       opacity: 0.6 !important;
     }
-    /* 4. Pengecilan marker */
     .leaflet-marker-icon {
       transform: scale(0.8);
       transform-origin: center center;
     }
 
-    /* Batasi lebar popup & jangan pecah link */
+    /* Popup */
     .leaflet-popup-content-wrapper {
       max-width: 250px !important;
     }
